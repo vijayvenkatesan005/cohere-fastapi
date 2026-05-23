@@ -1,6 +1,19 @@
 import asyncio
 import httpx
 import time
+import argparse
+
+parser = argparse.ArgumentParser(
+	prog="Benchmarking Script",
+	description="Measures various latencies for Model Serving",
+	epilog="Have fun"
+)
+
+parser.add_argument("--url", help="Specifies the server url", type=str)
+parser.add_argument("--n", help="Specifies the number of concurrent requests", type=int)
+parser.add_argument("--prompt", help="Specifies the user prompt to pass in", type=str)
+
+args = parser.parse_args()
 
 async def send_request(client, url, payload):
     start_time = time.time()
@@ -35,9 +48,9 @@ def compute_stats(latencies):
     return (p50_latency, p95_latency, p99_latency)
 
 async def main():
-    url = "http://127.0.0.1:8000/prediction"
-    payload = {"reviews": ["The product was faulty"]}
-    N = 10
+    url = args.url if args.url else "http://127.0.0.1:8000/prediction"
+    payload = {"reviews": [args.prompt if args.prompt else "The product was faulty"]}
+    N = int(args.n) if args.n else 10
 
     start_time = time.time()
     latencies = await benchmark(url, payload, N)
