@@ -1,6 +1,7 @@
 import asyncio
 import time
 import cohere
+import wandb
 import os
 from dotenv import load_dotenv
 
@@ -37,6 +38,12 @@ def compute_stats(latencies):
     return (p50_latency, p95_latency, p99_latency)
 
 async def main():
+    wandb.init(
+    project="cohere-benchmark",
+    name="command-a-vs-command-a-plus"
+    )
+
+
     payload = "Explain what machine learning is in one sentence"
     N = 5
     models = ["command-a-03-2025", "command-a-plus-05-2026"]
@@ -44,6 +51,9 @@ async def main():
     print(f"\n{'Model':<30} {'p50':>8} {'p95':>8} {'p99':>8} {'throughput':>12}")
     print("-" * 62)
 
+    results = []
+
+    
     for model in models:
         start_time = time.time()
         latencies = await benchmark(model, payload, N)
@@ -52,9 +62,15 @@ async def main():
         p50, p95, p99 = compute_stats(latencies)
         throughput = N / total_time
         print(f"{model:<30} {p50:>8.2f}s {p95:>8.2f}s {p99:>8.2f}s {throughput:>10.2f}/s")
+        results.append([model, p50, p95, p99, throughput])
     
+    table = wandb.Table(
+    columns=["model", "p50", "p95", "p99", "throughput"],
+    data=results
+    )
     
-    
+    wandb.log({"benchmark_results": table})
+    wandb.finish()
 
 if __name__ == "__main__":
     asyncio.run(main())
